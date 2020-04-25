@@ -1,79 +1,76 @@
 package ru.skillbranch.kotlinexample
 
 import androidx.annotation.VisibleForTesting
-import ru.skillbranch.kotlinexample.extensions.getAsPhoneNumber
-import ru.skillbranch.kotlinexample.extensions.isPhoneNumber
 
 object UserHolder {
     private val map = mutableMapOf<String, User>()
-
-
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    fun clearHolder(){
-        map.clear()
-    }
 
     fun registerUser(
         fullName: String,
         email: String,
         password: String
     ): User {
-        return User.makeUser(fullName,email= email,password = password)
-            .also { user ->
-                checkUserAndSave(user)
-            }
+        val us: User = User.makeUser(fullName, email = email, password = password)
+        if (map.containsKey(us.login)) {
+            throw IllegalArgumentException("A user with this email already exists")
+        }
 
-    }
-
-    fun registerUserByPhone(fullName: String, rawPhone: String):User {
-        return User.makeUser(fullName,phone = rawPhone)
-            .also {user ->
-                checkUserAndSave(user, true)
-            }
-    }
-
-    fun checkUserAndSave(user: User, byPhone: Boolean = false) {
-        if (map[user.login] == null)
+        return us.also { user ->
             map[user.login] = user
-        else {
-            val msg = if(byPhone) "A user with this phone already exists" else "A user with this email already exists"
-            throw IllegalArgumentException(msg)
         }
     }
 
-    fun loginUser (login: String, password: String) : String? {
-        return if (login.isPhoneNumber()) {
-            map[login.getAsPhoneNumber()]
-        } else {
-            map[login.trim()]
-        }?.run {
+    fun registerUserByPhone(
+        fullName: String,
+        rawPhone: String
+    ): User {
+        val us: User = User.makeUser(fullName, phone = rawPhone)
+        if (map.containsKey(us.login)) {
+            throw IllegalArgumentException("A user with this phone already exists")
+        }
+
+        return us.also { user ->
+            map[user.login] = user
+        }
+    }
+
+    fun loginUser(login: String, password: String): String? {
+        var log:String = login
+
+        val plus :String? = login?.let {
+            Regex(pattern = """\+""")
+                .find(input = it)?.value
+        }
+        if (plus != null && plus.length == 1) {
+            log = login.replace("[^+\\d]".toRegex(), "")
+        }
+
+        return map[log.trim()]?.run {
             if (checkPassword(password)) this.userInfo
             else null
         }
     }
 
-    fun requestAccessCode(rawPhone: String?) {
-        val phone = rawPhone?.getAsPhoneNumber()
-        val plus = phone?.first()?.toString() ?: ""
-        val digits = (phone?.length ?: 0) - 1
-        if (!plus.equals("+") || digits != Constants.PHONE_LENGTH)
-            throw IllegalArgumentException("Enter a valid phone number starting with a + and containing 11 digits")
+    fun requestAccessCode(login: String) : Unit {
+        var log:String = login
 
-        map[phone].let { user ->
-            user?.renewAccessCode()
+        val plus :String? = login?.let {
+            Regex(pattern = """\+""")
+                .find(input = it)?.value
         }
+        if (plus != null && plus.length == 1) {
+            log = login.replace("[^+\\d]".toRegex(), "")
+        }
+
+
+        val user = map[log]
+        user?:throw IllegalArgumentException("Unregistred phone number")
+        user.requestAccessCode()
     }
 
-    fun importUsers(list: List<String>): List<User> {
-        val usersList = mutableListOf<User>()
-        val filteredList = list.filter { el -> !el.isNullOrBlank() }
-        filteredList.forEach {
-            User.makeUserFromCsvString(it).also {user ->
-                map[user.login] = user
-                usersList.add(user)
-            }
-        }
-        return usersList
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    fun clearHolder(){
+        map.clear()
     }
 
 }

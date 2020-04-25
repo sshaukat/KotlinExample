@@ -3,7 +3,8 @@ package ru.skillbranch.kotlinexample
 import org.junit.After
 import org.junit.Assert
 import org.junit.Test
-import ru.skillbranch.kotlinexample.extensions.dropLastUntil
+
+import org.junit.Assert.*
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -11,7 +12,19 @@ import ru.skillbranch.kotlinexample.extensions.dropLastUntil
  * See [testing documentation](http://d.android.com/tools/testing).
  */
 class ExampleUnitTest {
+    /**
+    Добавьте метод в UserHolder для очистки значений UserHolder после выполнения каждого теста,
+    это необходимо чтобы тесты можно было запускать одновременно
 
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    fun clearHolder(){
+    map.clear()
+    }
+     */
+    @After
+    fun after(){
+        UserHolder.clearHolder()
+    }
 
     @Test
     fun register_user_success() {
@@ -79,7 +92,7 @@ class ExampleUnitTest {
     @Test(expected = IllegalArgumentException::class)
     fun register_user_by_phone_fail_illegal_name() {
         val holder = UserHolder
-        holder.registerUserByPhone("John Jr Doe", "+7 (XXX) XX XX-XX")
+        holder.registerUserByPhone("John Doe", "+7 (XXX) XX XX-XX")
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -173,28 +186,4 @@ class ExampleUnitTest {
         Assert.assertEquals(expectedInfo, successResult)
     }
 
-    @Test
-    fun import_csv_test(){
-        val holder = UserHolder
-        val users = holder.importUsers(listOf(" John Doe ;JohnDoe@unknow.com;[B@7591083d:c6adb4becdc64e92857e1e2a0fd6af84;;"))
-        val userTest = holder.loginUser(users[0].login, "testPass")
-        Assert.assertEquals(userTest, users[0].userInfo)
-    }
-
-    @Test
-    fun iterable_test() {
-        val actual = listOf(1, 2, 3).dropLastUntil{ it==2 }
-        val expected = listOf(1)// [1]
-
-        Assert.assertEquals(expected, actual)
-        val housesActual = "House Nymeros Martell of Sunspear".split(" ")
-            .dropLastUntil{ it == "of" }
-        val housesExpected = listOf("House", "Nymeros", "Martell")
-        Assert.assertEquals(housesExpected, housesActual)
-    }
-
-    @After
-    fun after(){
-        UserHolder.clearHolder()
-    }
 }
